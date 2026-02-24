@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: campus-placement-predictor
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+```
+
+---
+
+**Step 3 — Sign up on Render**
+1. Go to [render.com](https://render.com)
+2. Sign up with your GitHub account
+
+---
+
+**Step 4 — Deploy**
+1. Click **New** → **Web Service**
+2. Connect your GitHub repository
+3. Render will automatically detect your Flask app
+4. Click **Deploy**
+5. Wait 2-3 minutes
+
+---
+
+**Step 5 — You get a live URL like:**
+```
+https://campus-placement-predictor.onrender.com
+```
+
+Add this URL to your GitHub README so anyone can click and use your project! 🚀
+
+---
+
+**Step 6 — Update your README on GitHub** with:
+```
+## 🔴 Live Demo
+👉 https://campus-placement-predictor.onrender.com
+
+## Login Credentials
+Username: admin
+Password: admin123
