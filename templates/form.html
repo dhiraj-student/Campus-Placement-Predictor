@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Placement Prediction</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #04030a; --surface: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.09);
+      --border-active: rgba(168,255,120,0.4); --accent: #a8ff78; --accent2: #7b61ff;
+      --text: #f0eeff; --muted: #6b6b8a; --input-bg: rgba(255,255,255,0.05);
+    }
+    html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+
+    /* ── NAVBAR ── */
+    .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: rgba(4,3,10,0.85); border-bottom: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .nav-inner { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-brand { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #f0eeff; text-decoration: none; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 0.3rem; }
+    .nav-link { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #7a7a9a; text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 100px; border: 1px solid transparent; transition: all 0.2s ease; }
+    .nav-link:hover { color: #f0eeff; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+    .nav-link.active { color: #04030a; background: #a8ff78; border-color: #a8ff78; }
+    body { padding-top: 56px; }
+
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.12; animation: floatOrb 10s ease-in-out infinite; }
+    .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #7b61ff, transparent); top: -200px; right: -200px; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #a8ff78, transparent); bottom: -100px; left: -100px; animation-delay: 4s; }
+    @keyframes floatOrb { 0%,100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.08) translateY(-20px); } }
+    .page { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    .card { background: rgba(8,6,18,0.85); border: 1px solid var(--border); border-radius: 28px; padding: 2.5rem 2.8rem; width: 100%; max-width: 540px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04); animation: cardIn 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+    @keyframes cardIn { from { opacity:0; transform: translateY(30px) scale(0.98); } to { opacity:1; transform: translateY(0) scale(1); } }
+    .card-header { margin-bottom: 2rem; text-align: center; }
+    .card-eyebrow { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .card-eyebrow::before, .card-eyebrow::after { content: ''; flex: 1; max-width: 40px; height: 1px; background: var(--border); }
+    .card-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+    .progress-wrap { display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem; }
+    .progress-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; color: var(--muted); transition: all 0.3s ease; flex-shrink: 0; }
+    .progress-dot.active { border-color: var(--accent); background: rgba(168,255,120,0.12); color: var(--accent); }
+    .progress-dot.done { border-color: var(--accent); background: var(--accent); color: #04030a; }
+    .progress-line { flex: 1; height: 2px; background: var(--border); transition: background 0.3s ease; }
+    .progress-line.done { background: var(--accent); }
+    .step { display: none; animation: stepIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+    .step.active { display: block; }
+    @keyframes stepIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+    .step-question { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+    .step-hint { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.5rem; }
+    .field-input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 0.85rem 1rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 1rem; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; -webkit-appearance: none; appearance: none; }
+    .field-input:focus { border-color: var(--border-active); box-shadow: 0 0 0 3px rgba(168,255,120,0.08); }
+    .field-input::placeholder { color: var(--muted); }
+    .radio-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.7rem; margin-top: 0.2rem; }
+    .radio-card { position: relative; }
+    .radio-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .radio-card label { display: flex; align-items: center; gap: 0.6rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1rem; cursor: pointer; transition: all 0.2s ease; font-size: 0.9rem; font-weight: 500; color: var(--muted); user-select: none; }
+    .radio-card label::before { content: ''; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; transition: all 0.2s ease; }
+    .radio-card input:checked + label { border-color: var(--border-active); background: rgba(168,255,120,0.06); color: var(--text); box-shadow: 0 0 0 2px rgba(168,255,120,0.08); }
+    .radio-card input:checked + label::before { background: var(--accent); border-color: var(--accent); }
+    .radio-card label:hover { border-color: rgba(255,255,255,0.18); color: var(--text); }
+    .step-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; }
+    .btn-back, .btn-next, .btn-submit { font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 100px; padding: 0.7rem 1.4rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 0.4rem; text-decoration: none; }
+    .btn-back { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+    .btn-back:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .btn-next { background: var(--accent); color: #04030a; box-shadow: 0 4px 20px rgba(168,255,120,0.25); }
+    .btn-next:hover { background: #c8ffaa; box-shadow: 0 4px 28px rgba(168,255,120,0.4); transform: translateY(-1px); }
+    .btn-submit { background: var(--accent); color: #04030a; box-shadow: 0 4px 20px rgba(168,255,120,0.25); font-size: 0.9rem; padding: 0.8rem 1.8rem; }
+    .btn-submit:hover { background: #c8ffaa; transform: translateY(-1px); }
+    .btn-ghost { opacity: 0; pointer-events: none; }
+    .step-counter { font-size: 0.72rem; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 600; letter-spacing: 0.1em; }
+    .summary-header { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.4rem; }
+    .summary-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(168,255,120,0.1); border: 1px solid rgba(168,255,120,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .summary-title { font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; }
+    .summary-subtitle { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-bottom: 1.5rem; }
+    .summary-item { background: var(--input-bg); border: 1px solid var(--border); border-radius: 14px; padding: 0.85rem 1rem; transition: border-color 0.2s ease; }
+    .summary-item:hover { border-color: rgba(168,255,120,0.2); }
+    .summary-label { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
+    .summary-value { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .summary-value.hi { color: var(--accent); }
+    .summary-divider { height: 1px; background: var(--border); margin: 0 0 1.2rem; }
+    .confirm-note { text-align: center; font-size: 0.75rem; color: var(--muted); font-style: italic; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">&#127919; Placement Predictor</a>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/home" class="nav-link  active">Predict</a>
+        <a href="/history" class="nav-link">History</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/models"    class="nav-link">Models</a>
+        <a href="/logout" class="nav-link" style="color:#ff6b6b;border-color:rgba(255,107,107,0.2);">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+  <div class="page">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-eyebrow">ML Powered</div>
+        <h1 class="card-title">Placement Predictor</h1>
+      </div>
+      <div class="progress-wrap" id="progressWrap"></div>
+      <form action="{{ url_for('predict') }}" method="GET" id="mainForm">
+        <div class="step active" data-step="0">
+          <p class="step-question">How old are you?</p>
+          <p class="step-hint">Enter your age between 19 and 30</p>
+          <input class="field-input" type="number" name="age" id="f-age" min="19" max="30" placeholder="e.g. 21" required />
+          <div class="step-nav"><span class="btn-ghost">—</span><span class="step-counter">1 / 7</span><button type="button" class="btn-next" onclick="nextStep()">Next →</button></div>
+        </div>
+        <div class="step" data-step="1">
+          <p class="step-question">What's your gender?</p>
+          <p class="step-hint">Select one option below</p>
+          <div class="radio-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="radio-card"><input type="radio" id="male" name="gender" value="1" required/><label for="male">Male</label></div>
+            <div class="radio-card"><input type="radio" id="female" name="gender" value="0"/><label for="female">Female</label></div>
+          </div>
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Back</button><span class="step-counter">2 / 7</span><button type="button" class="btn-next" onclick="nextStep()">Next →</button></div>
+        </div>
+        <div class="step" data-step="2">
+          <p class="step-question">What's your stream?</p>
+          <p class="step-hint">Select your engineering branch</p>
+          <div class="radio-grid">
+            <div class="radio-card"><input type="radio" id="s-it" name="stream" value="3" required/><label for="s-it">IT</label></div>
+            <div class="radio-card"><input type="radio" id="s-cse" name="stream" value="2"/><label for="s-cse">CSE</label></div>
+            <div class="radio-card"><input type="radio" id="s-entc" name="stream" value="1"/><label for="s-entc">E&TC</label></div>
+            <div class="radio-card"><input type="radio" id="s-civil" name="stream" value="6"/><label for="s-civil">Civil</label></div>
+            <div class="radio-card"><input type="radio" id="s-mech" name="stream" value="4"/><label for="s-mech">Mechanical</label></div>
+            <div class="radio-card"><input type="radio" id="s-elec" name="stream" value="5"/><label for="s-elec">Electrical</label></div>
+          </div>
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Back</button><span class="step-counter">3 / 7</span><button type="button" class="btn-next" onclick="nextStep()">Next →</button></div>
+        </div>
+        <div class="step" data-step="3">
+          <p class="step-question">What's your CGPA?</p>
+          <p class="step-hint">Enter your current pointer (1.0 – 10.0)</p>
+          <input class="field-input" type="number" name="cgpa" id="f-cgpa" step="0.01" min="1" max="10" placeholder="e.g. 8.5" required />
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Back</button><span class="step-counter">4 / 7</span><button type="button" class="btn-next" onclick="nextStep()">Next →</button></div>
+        </div>
+        <div class="step" data-step="4">
+          <p class="step-question">Any history of backlogs?</p>
+          <p class="step-hint">Select one option below</p>
+          <div class="radio-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="radio-card"><input type="radio" id="bl-no" name="backlogs" value="0" required/><label for="bl-no">No Backlogs</label></div>
+            <div class="radio-card"><input type="radio" id="bl-yes" name="backlogs" value="1"/><label for="bl-yes">Has Backlogs</label></div>
+          </div>
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Back</button><span class="step-counter">5 / 7</span><button type="button" class="btn-next" onclick="nextStep()">Next →</button></div>
+        </div>
+        <div class="step" data-step="5">
+          <p class="step-question">Have you done any live / real-world projects?</p>
+          <p class="step-hint">e.g. CAD models, circuits, web apps, automation tools, etc.</p>
+          <div class="radio-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="radio-card"><input type="radio" id="proj-yes" name="projects" value="1" required/><label for="proj-yes">Yes</label></div>
+            <div class="radio-card"><input type="radio" id="proj-no" name="projects" value="0"/><label for="proj-no">Not yet</label></div>
+          </div>
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Back</button><span class="step-counter">6 / 7</span><button type="button" class="btn-next" onclick="nextStep()">Next →</button></div>
+        </div>
+        <div class="step" data-step="6">
+          <p class="step-question">How many internships done?</p>
+          <p class="step-hint">Enter a number between 0 and 3</p>
+          <input class="field-input" type="number" name="internship" id="f-internship" min="0" max="3" placeholder="e.g. 1" required />
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Back</button><span class="step-counter">7 / 7</span><button type="button" class="btn-next" onclick="goToSummary()">Review →</button></div>
+        </div>
+        <div class="step" data-step="7">
+          <div class="summary-header">
+            <div class="summary-icon">👤</div>
+            <div><div class="summary-title">Your Profile</div><div class="summary-subtitle">Review your details before predicting</div></div>
+          </div>
+          <div class="summary-grid" id="summaryGrid"></div>
+          <div class="summary-divider"></div>
+          <p class="confirm-note">Everything look correct? Hit Predict to get your result.</p>
+          <div class="step-nav"><button type="button" class="btn-back" onclick="prevStep()">← Edit</button><span class="step-counter">✦ Ready</span><button type="submit" class="btn-submit">Predict ✦</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    const TOTAL = 8; let current = 0;
+    const streamMap  = {'1':'E&TC','2':'CSE','3':'IT','4':'Mechanical','5':'Electrical','6':'Civil'};
+    const genderMap  = {'1':'Male','0':'Female'};
+    const yesNoMap   = {'0':'No','1':'Yes'};
+    function buildProgress() {
+      const wrap = document.getElementById('progressWrap'); wrap.innerHTML = '';
+      for (let i = 0; i < 7; i++) {
+        const dot = document.createElement('div'); dot.className = 'progress-dot'; dot.textContent = i + 1;
+        if (current >= TOTAL - 1 || i < current) dot.classList.add('done');
+        else if (i === current) dot.classList.add('active');
+        wrap.appendChild(dot);
+        if (i < 6) { const line = document.createElement('div'); line.className = 'progress-line' + (i < current || current >= TOTAL - 1 ? ' done' : ''); wrap.appendChild(line); }
+      }
+    }
+    function getSteps() { return document.querySelectorAll('.step'); }
+    function showStep(idx) { getSteps().forEach((s,i) => s.classList.toggle('active', i === idx)); buildProgress(); }
+    function validate(stepIdx) {
+      const step = getSteps()[stepIdx];
+      const inputs = step.querySelectorAll('input[required], select[required]');
+      for (const inp of inputs) {
+        if (inp.type === 'radio') {
+          const group = step.querySelectorAll(`input[name="${inp.name}"]`);
+          if (![...group].some(r => r.checked)) { const q = step.querySelector('.step-question'); q.style.color = '#ff6b6b'; setTimeout(() => q.style.color = '', 800); return false; }
+        } else if (!inp.value.trim()) { inp.style.borderColor = '#ff6b6b'; inp.focus(); setTimeout(() => inp.style.borderColor = '', 800); return false; }
+      }
+      return true;
+    }
+    function nextStep() { if (!validate(current) || current >= TOTAL - 1) return; current++; showStep(current); }
+    function prevStep() { if (current > 0) { current--; showStep(current); } }
+    function getRadio(name) { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; }
+    function goToSummary() {
+      if (!validate(current)) return;
+      const items = [
+        { label:'Age',         value: document.getElementById('f-age').value + ' yrs' },
+        { label:'Gender',      value: genderMap[getRadio('gender')] || '—' },
+        { label:'Stream',      value: streamMap[getRadio('stream')] || '—' },
+        { label:'CGPA',        value: parseFloat(document.getElementById('f-cgpa').value).toFixed(2), hi: true },
+        { label:'Backlogs',    value: yesNoMap[getRadio('backlogs')] || '—' },
+        { label:'Live Projects', value: getRadio('projects') === '1' ? 'Yes' : 'No', hi: getRadio('projects') === '1' },
+        { label:'Internships', value: document.getElementById('f-internship').value, hi: true },
+      ];
+      document.getElementById('summaryGrid').innerHTML = items.map(it =>
+        `<div class="summary-item"><div class="summary-label">${it.label}</div><div class="summary-value${it.hi ? ' hi' : ''}">${it.value}</div></div>`
+      ).join('');
+      current = 7; showStep(7);
+    }
+    buildProgress(); showStep(0);
+  </script>
+</body>
+</html>

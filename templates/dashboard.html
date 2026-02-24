@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #04030a; --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+      --accent: #a8ff78; --accent2: #7b61ff; --text: #f0eeff; --muted: #7a7a9a;
+      --high: #a8ff78; --low: #ff6b6b;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.1; animation: float 10s ease-in-out infinite; }
+    .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #7b61ff, transparent); top: -200px; right: -200px; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #a8ff78, transparent); bottom: -100px; left: -100px; animation-delay: 4s; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    .page { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+    /* Header */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+    .header-left h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; }
+    .header-left p  { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+    .nav-links { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 100px; padding: 0.6rem 1.2rem;
+      transition: all 0.2s ease; text-decoration: none;
+    }
+    .nav-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); transform: translateY(-1px); }
+    .nav-btn.active { color: #04030a; background: var(--accent); border-color: var(--accent); }
+
+    /* Empty */
+    .empty-state { text-align: center; padding: 5rem 2rem; background: var(--card); border: 1px solid var(--border); border-radius: 20px; }
+    .empty-icon  { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .empty-sub   { font-size: 0.85rem; color: var(--muted); }
+
+    /* Stat cards */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.2rem 1.4rem; }
+    .stat-label { font-size: 0.63rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; }
+    .stat-sub   { font-size: 0.72rem; color: var(--muted); margin-top: 0.25rem; }
+    .green  { color: var(--high); }
+    .red    { color: var(--low); }
+    .purple { color: var(--accent2); }
+    .white  { color: var(--text); }
+
+    /* Chart grid */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 1.2rem; }
+    .chart-full  { grid-column: 1 / -1; }
+    .chart-card  { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 1.5rem; }
+    .chart-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .chart-sub   { font-size: 0.75rem; color: var(--muted); margin-bottom: 1.2rem; }
+    .chart-wrap  { position: relative; }
+
+    /* Model badge */
+    .model-row { display: flex; justify-content: center; margin-top: 2rem; }
+    .model-badge { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 100px; padding: 0.4rem 1rem; }
+    .model-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #7b61ff; display: inline-block; }
+
+    @media (max-width: 650px) {
+      .stats-row   { grid-template-columns: 1fr 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-full  { grid-column: 1; }
+    }
+
+    /* ── NAVBAR ── */
+    .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: rgba(4,3,10,0.85); border-bottom: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .nav-inner { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-brand { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #f0eeff; text-decoration: none; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 0.3rem; }
+    .nav-link { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #7a7a9a; text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 100px; border: 1px solid transparent; transition: all 0.2s ease; }
+    .nav-link:hover { color: #f0eeff; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+    .nav-link.active { color: #04030a; background: #a8ff78; border-color: #a8ff78; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">&#127919; Placement Predictor</a>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/home" class="nav-link">Predict</a>
+        <a href="/history" class="nav-link">History</a>
+        <a href="/dashboard" class="nav-link  active">Dashboard</a>
+        <a href="/models"    class="nav-link">Models</a>
+        <a href="/logout" class="nav-link" style="color:#ff6b6b;border-color:rgba(255,107,107,0.2);">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+  <div class="page">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Analytics Dashboard</h1>
+        <p>Visual insights from all placement predictions</p>
+      </div>
+      <div class="nav-links">
+        <a href="/home"      class="nav-btn">← Predict</a>
+        <a href="/history"   class="nav-btn">History</a>
+        <a href="/dashboard" class="nav-btn active">Dashboard</a>
+      </div>
+    </div>
+
+    {% if total == 0 %}
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">No data yet</div>
+      <div class="empty-sub">Make some predictions first to see analytics here</div>
+    </div>
+
+    {% else %}
+
+    <!-- Stat Cards -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Predictions</div>
+        <div class="stat-value purple">{{ total }}</div>
+        <div class="stat-sub">All time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">High Chances</div>
+        <div class="stat-value green">{{ placed }}</div>
+        <div class="stat-sub">{{ ((placed / total) * 100) | round(1) }}% of total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Low Chances</div>
+        <div class="stat-value red">{{ not_placed }}</div>
+        <div class="stat-sub">{{ ((not_placed / total) * 100) | round(1) }}% of total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg CGPA (Placed)</div>
+        <div class="stat-value white">{{ avg_cgpa_placed }}</div>
+        <div class="stat-sub">vs {{ avg_cgpa_not_placed }} (not placed)</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+
+      <!-- Pie Chart: Placed vs Not Placed -->
+      <div class="chart-card">
+        <div class="chart-title">Placement Distribution</div>
+        <div class="chart-sub">High vs Low chances overall</div>
+        <div class="chart-wrap"><canvas id="pieChart" height="220"></canvas></div>
+      </div>
+
+      <!-- Gender Chart -->
+      <div class="chart-card">
+        <div class="chart-title">Gender vs Placement</div>
+        <div class="chart-sub">Male and Female breakdown</div>
+        <div class="chart-wrap"><canvas id="genderChart" height="220"></canvas></div>
+      </div>
+
+      <!-- Stream Chart (full width) -->
+      <div class="chart-card chart-full">
+        <div class="chart-title">Stream-wise Placement</div>
+        <div class="chart-sub">Placement outcomes across engineering branches</div>
+        <div class="chart-wrap"><canvas id="streamChart" height="120"></canvas></div>
+      </div>
+
+      <!-- Internship Chart (full width) -->
+      <div class="chart-card chart-full">
+        <div class="chart-title">Internships vs Placement</div>
+        <div class="chart-sub">How internship count affects placement chances</div>
+        <div class="chart-wrap"><canvas id="internChart" height="120"></canvas></div>
+      </div>
+
+    </div>
+
+    <div class="model-row">
+      <div class="model-badge">Powered by {{ model_label }}</div>
+    </div>
+
+    {% endif %}
+  </div>
+
+  <script>
+    Chart.defaults.color         = '#7a7a9a';
+    Chart.defaults.borderColor   = 'rgba(255,255,255,0.06)';
+    Chart.defaults.font.family   = 'DM Sans';
+
+    const HIGH  = '#a8ff78';
+    const LOW   = '#ff6b6b';
+    const PURP  = '#7b61ff';
+    const TEAL  = '#78ffd6';
+
+    {% if total > 0 %}
+
+    // ── Pie Chart ──
+    new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['High Chances', 'Low Chances'],
+        datasets: [{
+          data: [{{ placed }}, {{ not_placed }}],
+          backgroundColor: [HIGH, LOW],
+          borderColor: '#04030a', borderWidth: 3,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10 } }
+        }
+      }
+    });
+
+    // ── Gender Chart ──
+    const genderData = {{ gender_data | tojson }};
+    const genders    = Object.keys(genderData);
+    new Chart(document.getElementById('genderChart'), {
+      type: 'bar',
+      data: {
+        labels: genders,
+        datasets: [
+          { label: 'High', data: genders.map(g => genderData[g]['High'] || 0), backgroundColor: HIGH, borderRadius: 6 },
+          { label: 'Low',  data: genders.map(g => genderData[g]['Low']  || 0), backgroundColor: LOW,  borderRadius: 6 }
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { stepSize: 1 } }
+        }
+      }
+    });
+
+    // ── Stream Chart ──
+    const streamData   = {{ stream_data | tojson }};
+    const streamLabels = Object.keys(streamData);
+    new Chart(document.getElementById('streamChart'), {
+      type: 'bar',
+      data: {
+        labels: streamLabels,
+        datasets: [
+          { label: 'High', data: streamLabels.map(s => streamData[s]['High'] || 0), backgroundColor: HIGH, borderRadius: 6 },
+          { label: 'Low',  data: streamLabels.map(s => streamData[s]['Low']  || 0), backgroundColor: LOW,  borderRadius: 6 }
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { stepSize: 1 } }
+        }
+      }
+    });
+
+    // ── Internship Chart ──
+    const internData   = {{ intern_data | tojson }};
+    const internLabels = Object.keys(internData).sort();
+    new Chart(document.getElementById('internChart'), {
+      type: 'bar',
+      data: {
+        labels: internLabels.map(k => k + ' Internship' + (k === '1' ? '' : 's')),
+        datasets: [
+          { label: 'High', data: internLabels.map(k => internData[k]['High'] || 0), backgroundColor: HIGH, borderRadius: 6 },
+          { label: 'Low',  data: internLabels.map(k => internData[k]['Low']  || 0), backgroundColor: LOW,  borderRadius: 6 }
+        ]
+      },
+      options: {
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { stepSize: 1 } }
+        }
+      }
+    });
+
+    {% endif %}
+  </script>
+</body>
+</html>

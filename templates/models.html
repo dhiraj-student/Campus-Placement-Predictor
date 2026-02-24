@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Model Comparison</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #04030a; --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+      --accent: #a8ff78; --accent2: #7b61ff; --text: #f0eeff; --muted: #7a7a9a;
+      --high: #a8ff78; --low: #ff6b6b;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; padding-top: 56px; }
+
+    /* ── NAVBAR ── */
+    .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: rgba(4,3,10,0.85); border-bottom: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(20px); }
+    .nav-inner { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-brand { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #f0eeff; text-decoration: none; }
+    .nav-links { display: flex; align-items: center; gap: 0.3rem; }
+    .nav-link { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #7a7a9a; text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 100px; border: 1px solid transparent; transition: all 0.2s ease; }
+    .nav-link:hover { color: #f0eeff; background: rgba(255,255,255,0.06); }
+    .nav-link.active { color: #04030a; background: #a8ff78; border-color: #a8ff78; }
+
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.1; animation: float 10s ease-in-out infinite; }
+    .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #7b61ff, transparent); top: -200px; right: -200px; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #a8ff78, transparent); bottom: -100px; left: -100px; animation-delay: 4s; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    .page { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+    /* Header */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+    .header-left h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; }
+    .header-left p  { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+
+    /* Best model banner */
+    .best-banner { background: rgba(168,255,120,0.06); border: 1px solid rgba(168,255,120,0.2); border-radius: 16px; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    .best-icon { font-size: 1.8rem; }
+    .best-text-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .best-text-sub   { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+
+    /* Chart */
+    .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .chart-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+    .chart-sub   { font-size: 0.75rem; color: var(--muted); margin-bottom: 1.2rem; }
+
+    /* Table */
+    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    thead th { font-family: 'Syne', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); padding: 1rem 1.2rem; text-align: left; }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s ease; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody tr.best-row { background: rgba(168,255,120,0.04); border-left: 3px solid var(--accent); }
+    tbody td { padding: 0.9rem 1.2rem; font-size: 0.85rem; color: var(--text); vertical-align: middle; }
+
+    .rank-badge { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; color: var(--muted); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem 0.5rem; }
+    .rank-badge.gold { background: rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.3); color: #ffd700; }
+
+    .model-name { font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700; }
+    .best-tag { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(168,255,120,0.12); color: var(--accent); border: 1px solid rgba(168,255,120,0.25); border-radius: 100px; padding: 0.15rem 0.55rem; margin-left: 0.5rem; }
+
+    .metric-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .metric-bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 100px; overflow: hidden; min-width: 50px; }
+    .metric-bar-fill  { height: 100%; border-radius: 100px; background: linear-gradient(90deg, #7b61ff, #a8ff78); }
+    .metric-text { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; min-width: 46px; }
+
+    @media (max-width: 650px) {
+      thead th:nth-child(4), tbody td:nth-child(4),
+      thead th:nth-child(5), tbody td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">&#127919; Placement Predictor</a>
+      <div class="nav-links">
+        <a href="/"          class="nav-link">Home</a>
+        <a href="/home"      class="nav-link">Predict</a>
+        <a href="/history"   class="nav-link">History</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/models"    class="nav-link active">Models</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+  <div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Model Comparison</h1>
+        <p>Accuracy and metrics of all 7 ML models trained on your dataset</p>
+      </div>
+    </div>
+
+    <!-- Best Model Banner -->
+    <div class="best-banner">
+      <div class="best-icon">🏆</div>
+      <div>
+        <div class="best-text-title">Currently Using: {{ model_label }}</div>
+        <div class="best-text-sub">This model was automatically selected as the best performer and is being used for all predictions</div>
+      </div>
+    </div>
+
+    <!-- Accuracy Bar Chart -->
+    <div class="chart-card">
+      <div class="chart-title">Accuracy Comparison</div>
+      <div class="chart-sub">Test accuracy of all 7 models on the placement dataset</div>
+      <canvas id="accuracyChart" height="90"></canvas>
+    </div>
+
+    <!-- Metrics Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Model</th>
+            <th>Accuracy</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1 Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          <tr class="{{ 'best-row' if r.is_best else '' }}">
+            <td><span class="rank-badge {{ 'gold' if loop.index == 1 else '' }}">#{{ loop.index }}</span></td>
+            <td>
+              <span class="model-name">{{ r.name }}</span>
+              {% if r.is_best %}<span class="best-tag">✦ In Use</span>{% endif %}
+            </td>
+            <td>
+              <div class="metric-bar-wrap">
+                <div class="metric-bar-track"><div class="metric-bar-fill" style="width:{{ r.accuracy }}%"></div></div>
+                <span class="metric-text">{{ r.accuracy }}%</span>
+              </div>
+            </td>
+            <td><span class="metric-text">{{ r.precision }}%</span></td>
+            <td><span class="metric-text">{{ r.recall }}%</span></td>
+            <td><span class="metric-text">{{ r.f1 }}%</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    Chart.defaults.color       = '#7a7a9a';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+    Chart.defaults.font.family = 'DM Sans';
+
+    const results = {{ results | tojson }};
+    const labels  = results.map(r => r.name);
+    const accs    = results.map(r => r.accuracy);
+    const colors  = results.map(r => r.is_best ? '#a8ff78' : 'rgba(123,97,255,0.7)');
+
+    new Chart(document.getElementById('accuracyChart'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Accuracy (%)',
+          data: accs,
+          backgroundColor: colors,
+          borderRadius: 8,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.parsed.y}% Accuracy`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            min: 50, max: 100,
+            ticks: { callback: v => v + '%' }
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

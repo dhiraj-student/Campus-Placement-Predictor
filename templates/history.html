@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prediction History</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #04030a; --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+      --accent: #a8ff78; --accent2: #7b61ff; --text: #f0eeff; --muted: #7a7a9a;
+      --high: #a8ff78; --low: #ff6b6b;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.1; animation: float 10s ease-in-out infinite; }
+    .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #7b61ff, transparent); top: -200px; right: -200px; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #a8ff78, transparent); bottom: -100px; left: -100px; animation-delay: 4s; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+    .page { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+    /* Header */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem; }
+    .header-left h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; }
+    .header-left p  { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 100px; padding: 0.65rem 1.3rem;
+      transition: all 0.25s ease; text-decoration: none;
+    }
+    .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); transform: translateY(-1px); }
+
+    /* Stats Row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.2rem 1.4rem; }
+    .stat-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; }
+    .stat-value.green { color: var(--high); }
+    .stat-value.red   { color: var(--low); }
+    .stat-value.purple { color: var(--accent2); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 4rem 2rem; background: var(--card); border: 1px solid var(--border); border-radius: 20px; }
+    .empty-icon  { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .empty-sub   { font-size: 0.85rem; color: var(--muted); }
+
+    /* Table */
+    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    thead th { font-family: 'Syne', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); padding: 1rem 1.2rem; text-align: left; }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s ease; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody td { padding: 0.9rem 1.2rem; font-size: 0.85rem; color: var(--text); vertical-align: middle; }
+
+    .badge { display: inline-flex; align-items: center; gap: 0.35rem; font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; padding: 0.3rem 0.8rem; border-radius: 100px; }
+    .badge.high { background: rgba(168,255,120,0.1); color: var(--high); border: 1px solid rgba(168,255,120,0.2); }
+    .badge.low  { background: rgba(255,107,107,0.1); color: var(--low);  border: 1px solid rgba(255,107,107,0.2); }
+    .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    .prob-bar-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .prob-bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 100px; overflow: hidden; min-width: 60px; }
+    .prob-bar-fill  { height: 100%; border-radius: 100px; }
+    .prob-bar-fill.high { background: linear-gradient(90deg, #78ffd6, #a8ff78); }
+    .prob-bar-fill.low  { background: linear-gradient(90deg, #ff6b6b, #ffa07a); }
+    .prob-text { font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; min-width: 42px; }
+
+    .id-badge { font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700; color: var(--muted); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem 0.5rem; }
+    .timestamp { font-size: 0.75rem; color: var(--muted); }
+
+    @media (max-width: 700px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      thead th:nth-child(4), tbody td:nth-child(4),
+      thead th:nth-child(5), tbody td:nth-child(5) { display: none; }
+    }
+
+    /* ── NAVBAR ── */
+    .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: rgba(4,3,10,0.85); border-bottom: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .nav-inner { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-brand { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #f0eeff; text-decoration: none; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 0.3rem; }
+    .nav-link { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #7a7a9a; text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 100px; border: 1px solid transparent; transition: all 0.2s ease; }
+    .nav-link:hover { color: #f0eeff; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+    .nav-link.active { color: #04030a; background: #a8ff78; border-color: #a8ff78; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">&#127919; Placement Predictor</a>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/home" class="nav-link">Predict</a>
+        <a href="/history" class="nav-link  active">History</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/models"    class="nav-link">Models</a>
+        <a href="/logout" class="nav-link" style="color:#ff6b6b;border-color:rgba(255,107,107,0.2);">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="bg-orbs"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+  <div class="page">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Prediction History</h1>
+        <p>All placement predictions made so far</p>
+      </div>
+      <a href="/home" class="back-btn">← New Prediction</a>
+    </div>
+
+    <!-- Stats -->
+    {% set total  = predictions | length %}
+    {% set placed = predictions | selectattr('result', 'equalto', 'High') | list | length %}
+    {% set not_placed = total - placed %}
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Predictions</div>
+        <div class="stat-value purple">{{ total }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">High Chances</div>
+        <div class="stat-value green">{{ placed }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Low Chances</div>
+        <div class="stat-value red">{{ not_placed }}</div>
+      </div>
+    </div>
+
+    <!-- Table or Empty -->
+    {% if predictions %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Age / Gender</th>
+            <th>Stream</th>
+            <th>CGPA</th>
+            <th>Internships</th>
+            <th>Probability</th>
+            <th>Result</th>
+            <th>Date & Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in predictions %}
+          <tr>
+            <td><span class="id-badge">{{ p['id'] }}</span></td>
+            <td>{{ p['age'] }} yrs &nbsp;·&nbsp; {{ p['gender'] }}</td>
+            <td>{{ p['stream'] }}</td>
+            <td>{{ p['cgpa'] }}</td>
+            <td>{{ p['internships'] }}</td>
+            <td>
+              <div class="prob-bar-wrap">
+                <div class="prob-bar-track">
+                  <div class="prob-bar-fill {{ 'high' if p['result'] == 'High' else 'low' }}"
+                       style="width: {{ p['probability'] }}%"></div>
+                </div>
+                <span class="prob-text">{{ p['probability'] }}%</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ 'high' if p['result'] == 'High' else 'low' }}">
+                {{ p['result'] }}
+              </span>
+            </td>
+            <td><span class="timestamp">{{ p['timestamp'] }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">No predictions yet</div>
+      <div class="empty-sub">Make your first prediction to see it here</div>
+    </div>
+    {% endif %}
+
+  </div>
+</body>
+</html>

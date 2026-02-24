@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Result</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #04030a; --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.08);
+      --accent-high: #a8ff78; --accent-low: #ff6b6b; --text: #f0eeff; --muted: #7a7a9a;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+    .bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18; animation: float 8s ease-in-out infinite; }
+    .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #a8ff78, transparent); top: -150px; left: -150px; }
+    .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #7b61ff, transparent); bottom: -100px; right: -100px; animation-delay: 3s; }
+    .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, #ff6b6b, transparent); top: 40%; left: 60%; animation-delay: 5s; }
+    @keyframes float { 0%,100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-30px) scale(1.05); } }
+    .scene { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 3rem 1.5rem 4rem; gap: 1.5rem; }
+    .label-chip { font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); background: var(--card); border: 1px solid var(--border); padding: 0.4rem 1rem; border-radius: 100px; animation: fadeDown 0.6s ease both; }
+    .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 2.5rem 3rem; text-align: center; max-width: 480px; width: 100%; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); animation: riseUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.1s both; position: relative; overflow: hidden; }
+    .result-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%); pointer-events: none; }
+    .result-card.high { box-shadow: 0 0 0 1px rgba(168,255,120,0.2), 0 20px 60px rgba(168,255,120,0.08), 0 40px 80px rgba(0,0,0,0.4); }
+    .result-card.low  { box-shadow: 0 0 0 1px rgba(255,107,107,0.2), 0 20px 60px rgba(255,107,107,0.08), 0 40px 80px rgba(0,0,0,0.4); }
+    .result-label { font-size: 0.9rem; color: var(--muted); margin-bottom: 1rem; }
+    .result-value { font-family: 'Syne', sans-serif; font-size: clamp(3.5rem,10vw,5.5rem); font-weight: 800; line-height: 1; margin-bottom: 0.5rem; letter-spacing: -0.03em; }
+    .result-value.high { background: linear-gradient(135deg,#a8ff78,#78ffd6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .result-value.low  { background: linear-gradient(135deg,#ff6b6b,#ffa07a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .result-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; }
+    .gauge-section { margin-bottom: 2rem; }
+    .gauge-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.6rem; }
+    .gauge-title { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; }
+    .gauge-percent { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--text); }
+    .gauge-track { height: 8px; background: rgba(255,255,255,0.07); border-radius: 100px; overflow: hidden; }
+    .gauge-fill { height: 100%; border-radius: 100px; width: 0%; transition: width 1.4s cubic-bezier(0.16,1,0.3,1) 0.5s; }
+    .gauge-fill.high { background: linear-gradient(90deg,#78ffd6,#a8ff78); }
+    .gauge-fill.low  { background: linear-gradient(90deg,#ff6b6b,#ffa07a); }
+    .divider { height: 1px; background: var(--border); margin: 0 0 1.5rem; }
+    .model-badge { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 100px; padding: 0.3rem 0.8rem; }
+    .model-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #7b61ff; display: inline-block; }
+    .tips-section { max-width: 480px; width: 100%; animation: riseUp 0.7s cubic-bezier(0.16,1,0.3,1) 0.25s both; }
+    .tips-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
+    .tips-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .tips-icon.high { background: rgba(168,255,120,0.1); border: 1px solid rgba(168,255,120,0.2); }
+    .tips-icon.low  { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.2); }
+    .tips-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+    .tips-subtitle { font-size: 0.75rem; color: var(--muted); }
+    .tips-list { display: flex; flex-direction: column; gap: 0.65rem; }
+    .tip-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 0.9rem 1.1rem; display: flex; align-items: flex-start; gap: 0.8rem; transition: border-color 0.2s ease, transform 0.2s ease; animation: riseUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+    .tip-item:nth-child(1) { animation-delay: 0.3s; }
+    .tip-item:nth-child(2) { animation-delay: 0.4s; }
+    .tip-item:nth-child(3) { animation-delay: 0.5s; }
+    .tip-item:nth-child(4) { animation-delay: 0.6s; }
+    .tip-item:hover { border-color: rgba(255,255,255,0.15); transform: translateX(4px); }
+    .tip-dot { width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; margin-top: 1px; }
+    .tip-dot.high { background: rgba(168,255,120,0.1); color: #a8ff78; }
+    .tip-dot.low  { background: rgba(255,107,107,0.1); color: #ff6b6b; }
+    .tip-text { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+    .tip-text strong { color: var(--text); font-weight: 600; display: block; margin-bottom: 0.1rem; }
+    .tip-text span { color: var(--muted); font-size: 0.8rem; }
+    .nav-links { display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center; }
+    .back-btn { display: inline-flex; align-items: center; gap: 0.5rem; font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 100px; padding: 0.75rem 1.5rem; transition: all 0.25s ease; text-decoration: none; animation: fadeDown 0.6s ease 0.3s both; }
+    .back-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); transform: translateY(-2px); }
+    @keyframes fadeDown { from { opacity:0; transform: translateY(-16px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes riseUp  { from { opacity:0; transform: translateY(40px) scale(0.97); } to { opacity:1; transform: translateY(0) scale(1); } }
+
+    /* ── NAVBAR ── */
+    .navbar { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: rgba(4,3,10,0.85); border-bottom: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    .nav-inner { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-brand { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #f0eeff; text-decoration: none; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 0.3rem; }
+    .nav-link { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #7a7a9a; text-decoration: none; padding: 0.45rem 0.9rem; border-radius: 100px; border: 1px solid transparent; transition: all 0.2s ease; }
+    .nav-link:hover { color: #f0eeff; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+    .nav-link.active { color: #04030a; background: #a8ff78; border-color: #a8ff78; }
+    body { padding-top: 56px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">&#127919; Placement Predictor</a>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/home" class="nav-link  active">Predict</a>
+        <a href="/history" class="nav-link">History</a>
+        <a href="/dashboard" class="nav-link">Dashboard</a>
+        <a href="/models"    class="nav-link">Models</a>
+        <a href="/logout" class="nav-link" style="color:#ff6b6b;border-color:rgba(255,107,107,0.2);">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+  </div>
+  <div class="scene">
+    <div class="label-chip">Placement Prediction Result</div>
+    <div class="result-card {{ 'high' if output == 'High' else 'low' }}">
+      <p class="result-label">Your chances of getting placed are</p>
+      <div class="result-value {{ 'high' if output == 'High' else 'low' }}">{{ output }}</div>
+      <p class="result-sub">
+        {% if output == 'High' %}Great profile! Keep it up.{% else %}Don't give up — keep improving!{% endif %}
+      </p>
+      <div class="gauge-section">
+        <div class="gauge-header">
+          <span class="gauge-title">Placement Probability</span>
+          <span class="gauge-percent">{{ probability }}%</span>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-fill {{ 'high' if output == 'High' else 'low' }}" id="gauge" data-width="{{ probability }}"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="model-badge">{{ model_label }}</div>
+    </div>
+    <div class="tips-section">
+      <div class="tips-header">
+        <div class="tips-icon {{ 'high' if output == 'High' else 'low' }}">
+          {% if output == 'High' %}🚀{% else %}💡{% endif %}
+        </div>
+        <div>
+          <div class="tips-title">{% if output == 'High' %}Keep Your Edge{% else %}How to Improve{% endif %}</div>
+          <div class="tips-subtitle">{% if output == 'High' %}Tips to stay ahead during placements{% else %}Steps to boost your placement chances{% endif %}</div>
+        </div>
+      </div>
+      <div class="tips-list">
+        {% if output == 'High' %}
+          <div class="tip-item"><div class="tip-dot high">✦</div><div class="tip-text"><strong>Polish your resume</strong><span>Highlight internships, projects and achievements clearly.</span></div></div>
+          <div class="tip-item"><div class="tip-dot high">✦</div><div class="tip-text"><strong>Practice aptitude & DSA</strong><span>Most companies test coding and logical reasoning first.</span></div></div>
+          <div class="tip-item"><div class="tip-dot high">✦</div><div class="tip-text"><strong>Mock interviews</strong><span>Simulate real HR and technical rounds with friends or online platforms.</span></div></div>
+          <div class="tip-item"><div class="tip-dot high">✦</div><div class="tip-text"><strong>Stay consistent</strong><span>Don't drop your CGPA in the final semester — companies check it.</span></div></div>
+        {% else %}
+          <div class="tip-item"><div class="tip-dot low">→</div><div class="tip-text"><strong>Do at least one internship</strong><span>Even a short internship significantly improves your profile.</span></div></div>
+          <div class="tip-item"><div class="tip-dot low">→</div><div class="tip-text"><strong>Clear your backlogs</strong><span>Active backlogs are a major red flag for recruiters — prioritize clearing them.</span></div></div>
+          <div class="tip-item"><div class="tip-dot low">→</div><div class="tip-text"><strong>Improve your CGPA</strong><span>Aim for above 7.0 — many companies have a hard cutoff at this level.</span></div></div>
+          <div class="tip-item"><div class="tip-dot low">→</div><div class="tip-text"><strong>Build projects & skills</strong><span>Certifications, GitHub projects and online courses can compensate for a lower CGPA.</span></div></div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="/home"      class="back-btn">← Try Again</a>
+      <a href="/history"   class="back-btn">History</a>
+      <a href="/dashboard" class="back-btn">Dashboard</a>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('load', () => {
+      const gauge = document.getElementById('gauge');
+      setTimeout(() => { gauge.style.width = gauge.dataset.width + '%'; }, 100);
+    });
+  </script>
+</body>
+</html>
