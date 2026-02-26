@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import sqlite3
 import pandas as pd
+import os
 from datetime import datetime
 from flask import Flask, request, render_template, g, session, redirect, url_for, flash
 from functools import wraps
@@ -263,5 +264,8 @@ def clear_history():
     db.commit()
     return history()
 
+
+
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0')
+    port = int(os.environ.get("PORT", 10000))
+    app.run(debug=False, host='0.0.0.0', port=port)
